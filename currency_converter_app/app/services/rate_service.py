@@ -43,11 +43,26 @@ def manage_rates_file(new_rates_data):
 def get_latest_rates():
     """
     Retrieves the latest rates from the current rates.json file.
+    Returns the 'rates' dictionary from the JSON data.
     """
-    if os.path.exists(current_app.config['RATES_FILE']):
+    try:
         with open(current_app.config['RATES_FILE'], 'r') as f:
-            return json.load(f)
-    return None
+            data = json.load(f)
+            return data.get('rates', {})
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+def get_top_rates():
+    """
+    Retrieves the top rates from the current rates.json file.
+    Returns the 'top_rates' dictionary from the JSON data.
+    """
+    try:
+        with open(current_app.config['RATES_FILE'], 'r') as f:
+            data = json.load(f)
+            return data.get('top_rates', {})
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
 
 def get_historical_rates(date):
     """

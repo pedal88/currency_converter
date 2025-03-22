@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Convert Currency - Currency Converter{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <h1 class="text-center mb-4">Currency Converter</h1>
+        
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('main.convert_page') }}" class="mb-4">
+                    <div class="row g-3">
+                        <!-- Amount Input -->
+                        <div class="col-md-4">
+                            <label for="amount" class="form-label">Amount</label>
+                            <input type="number" class="form-control" id="amount" name="amount" 
+                                   step="0.01" min="0" required value="{{ amount if amount }}">
+                        </div>
+                        
+                        <!-- From Currency -->
+                        <div class="col-md-4">
+                            <label for="fromCurrency" class="form-label">From Currency</label>
+                            <select class="form-select" id="fromCurrency" name="from_currency" required>
+                                <option value="">Choose currency...</option>
+                                {% for currency in available_currencies %}
+                                    <option value="{{ currency }}" 
+                                            {% if from_currency == currency %}selected{% endif %}>
+                                        {{ currency }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- To Currency -->
+                        <div class="col-md-4">
+                            <label for="toCurrency" class="form-label">To Currency</label>
+                            <select class="form-select" id="toCurrency" name="to_currency" required>
+                                <option value="">Choose currency...</option>
+                                {% for currency in available_currencies %}
+                                    <option value="{{ currency }}"
+                                            {% if to_currency == currency %}selected{% endif %}>
+                                        {{ currency }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Convert Button -->
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-primary">Convert</button>
+                    </div>
+                </form>
+
+                <!-- Result Display -->
+                {% if result is not none %}
+                    <div class="mt-4">
+                        <div class="alert {% if error %}alert-danger{% else %}alert-success{% endif %}">
+                            {% if error %}
+                                <h4 class="alert-heading">Error</h4>
+                                <p class="mb-0">{{ error }}</p>
+                            {% else %}
+                                <h4 class="alert-heading">Conversion Result</h4>
+                                <p class="mb-0">
+                                    {{ amount }} {{ from_currency }} = {{ result }} {{ to_currency }}
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

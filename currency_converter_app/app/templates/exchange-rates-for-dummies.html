@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Exchange Rates Explained - Currency Converter{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <h1 class="text-center mb-4">Exchange Rates for Dummies</h1>
+        
+        <div class="card mb-4">
+            <div class="card-body">
+                <h2 class="card-title h4">What is an Exchange Rate? 🤔</h2>
+                <p class="card-text">
+                    An exchange rate is simply how much one currency is worth in terms of another currency. 
+                    Think of it like trading baseball cards - just like you might trade two regular cards for one rare card, 
+                    you trade one type of money for another at a specific rate.
+                </p>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <h2 class="card-title h4">Example with Pizza 🍕</h2>
+                <p class="card-text">
+                    Let's say a pizza costs $10 in the USA. If the exchange rate is:
+                </p>
+                <ul class="list-group mb-3">
+                    <li class="list-group-item">1 USD = 0.92 EUR</li>
+                    <li class="list-group-item">1 USD = 10.71 NOK</li>
+                </ul>
+                <p class="card-text">
+                    This means the same pizza would cost:
+                </p>
+                <ul class="list-group mb-3">
+                    <li class="list-group-item">€9.20 in Europe</li>
+                    <li class="list-group-item">107.10 NOK in Norway</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <h2 class="card-title h4">Why Do Exchange Rates Change? 📈</h2>
+                <p class="card-text">
+                    Exchange rates change all the time, like prices in a store. They change because of things like:
+                </p>
+                <ul class="list-group">
+                    <li class="list-group-item">How well a country's economy is doing</li>
+                    <li class="list-group-item">Political events and decisions</li>
+                    <li class="list-group-item">How much people want to buy or sell a currency</li>
+                    <li class="list-group-item">Interest rates in different countries</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <h2 class="card-title h4">Tips for Understanding Exchange Rates 💡</h2>
+                <ul class="list-group">
+                    <li class="list-group-item">
+                        <strong>Base Currency:</strong> This is your starting point (usually USD in our app)
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Higher number doesn't mean stronger:</strong> NOK being 10.71 doesn't mean it's stronger than EUR at 0.92
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Check daily:</strong> Rates change frequently, so always check current rates
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Watch for fees:</strong> Banks and exchange services often charge extra fees
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="{{ url_for('main.index') }}" class="btn btn-primary">
+                Check Current Exchange Rates
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

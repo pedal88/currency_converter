@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Exchange Rates - Currency Converter{% endblock %}
+
+{% block content %}
+<h1 class="text-center mb-4">Exchange Rates</h1>
+
+<!-- Latest Rates -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3>Latest Rates</h3>
+            </div>
+            <div class="card-body">
+                {% if rates %}
+                    <ul class="list-group">
+                    {% for currency, rate in rates.items() %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ currency }}
+                            <span class="badge bg-primary rounded-pill">{{ rate }}</span>
+                        </li>
+                    {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No rates available</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Top Rates -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3>Top Rates</h3>
+            </div>
+            <div class="card-body">
+                {% if top_rates %}
+                    <ul class="list-group">
+                    {% for currency, rate in top_rates.items() %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ currency }}
+                            <span class="badge bg-success rounded-pill">{{ rate }}</span>
+                        </li>
+                    {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No top rates available</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
