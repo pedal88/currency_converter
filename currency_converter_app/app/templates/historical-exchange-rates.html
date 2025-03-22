@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+
+{% block title %}Historical Exchange Rates - Currency Converter{% endblock %}
+
+{% block styles %}
+<style>
+    .currency-selector {
+        margin-bottom: 2rem;
+    }
+    .chart-container {
+        position: relative;
+        height: 60vh;
+        width: 100%;
+    }
+    .selected-currency {
+        display: inline-block;
+        margin: 0.25rem;
+        padding: 0.5rem 1rem;
+        background-color: #007bff;
+        color: white;
+        border-radius: 0.25rem;
+    }
+    .remove-currency {
+        margin-left: 0.5rem;
+        cursor: pointer;
+    }
+    .currency-select {
+        min-width: 200px;
+    }
+    .event-tooltip {
+        background-color: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 8px;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="text-center mb-4">Historical Exchange Rates</h1>
+    
+    <!-- Currency Selection -->
+    <div class="row mb-4">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Select Currencies to Compare (up to 5)</h5>
+                    <form id="currencyForm" class="currency-selector">
+                        <div class="input-group">
+                            <select class="form-select currency-select" id="currencySelect">
+                                <option value="">Choose a currency...</option>
+                                {% for currency in available_currencies %}
+                                    <option value="{{ currency }}">{{ currency }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="button" class="btn btn-primary" id="addCurrency">
+                                Add Currency
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <!-- Selected Currencies Display -->
+                    <div id="selectedCurrencies" class="mb-3"></div>
+                    
+                    <!-- Update Chart Button -->
+                    <button type="button" class="btn btn-success" id="updateChart">
+                        Update Chart
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart Display -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <!-- Add Normalize Button -->
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-outline-primary" id="normalizeButton">
+                            Normalize Values
+                        </button>
+                        <small class="text-muted ms-2">Click to show relative changes from first date</small>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="ratesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Chart.js Annotation plugin -->
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
+<!-- Chart.js Adapter for date/time -->
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const currencySelect = document.getElementById('currencySelect');
+        const addCurrencyBtn = document.getElementById('addCurrency');
+        const selectedCurrenciesDiv = document.getElementById('selectedCurrencies');
+        const updateChartBtn = document.getElementById('updateChart');
+        const normalizeBtn = document.getElementById('normalizeButton');
+        const ctx = document.getElementById('ratesChart').getContext('2d');
+        
+        let selectedCurrencies = new Set();
+        let chart = null;
+        let originalData = null;
+        let isNormalized = false;
+
+        // Initialize chart with empty data
+        function initializeChart() {
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: []
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Exchange Rate (USD)'
+                            }
+                        },
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'year',
+                                displayFormats: {
+                                    year: 'yyyy',
+                                    month: 'MMM yyyy'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Historical Exchange Rates vs USD'
+                        },
+                        legend: {
+                            position: 'bottom'
+                        },
+                        annotation: {
+                            annotations: {}
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                        if (isNormalized) {
+                                            label += (context.parsed.y * 100).toFixed(2) + '%';
+                                        } else {
+                                            label += context.parsed.y.toFixed(4);
+                                        }
+                                    }
+                                    return label;
+                                },
+                                afterBody: function(context) {
+                                    const dataIndex = context[0].dataIndex;
+                                    const date = chart.data.labels[dataIndex];
+                                    const event = chart.economicEvents?.find(e => {
+                                        return new Date(e.date).getTime() === new Date(date).getTime();
+                                    });
+                                    if (event) {
+                                        return [
+                                            '\nHistorical Event:',
+                                            event.event,
+                                            'Impact: ' + event.impact
+                                        ];
+                                    }
+                                    return [];
+                                }
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+        }
+
+        initializeChart();
+
+        // Function to normalize data
+        function normalizeData(data) {
+            return data.datasets.map(dataset => {
+                const firstValue = dataset.data[0].y;
+                return {
+                    ...dataset,
+                    data: dataset.data.map(point => ({
+                        x: point.x,
+                        y: point.y / firstValue
+                    }))
+                };
+            });
+        }
+
+        // Toggle normalization
+        normalizeBtn.addEventListener('click', function() {
+            if (!chart.data.datasets.length) return;
+
+            isNormalized = !isNormalized;
+            
+            if (isNormalized) {
+                // Store original data if not already stored
+                if (!originalData) {
+                    originalData = JSON.parse(JSON.stringify(chart.data.datasets));
+                }
+                // Update to normalized data
+                chart.data.datasets = normalizeData(chart.data);
+                chart.options.scales.y.title.text = 'Relative Change (1.0 = Initial Value)';
+                normalizeBtn.classList.replace('btn-outline-primary', 'btn-primary');
+            } else {
+                // Restore original data
+                chart.data.datasets = originalData;
+                chart.options.scales.y.title.text = 'Exchange Rate (USD)';
+                normalizeBtn.classList.replace('btn-primary', 'btn-outline-primary');
+            }
+            
+            chart.update();
+        });
+
+        // Add currency to selection
+        addCurrencyBtn.addEventListener('click', function() {
+            const currency = currencySelect.value;
+            if (currency && selectedCurrencies.size < 5) {
+                selectedCurrencies.add(currency);
+                updateSelectedCurrenciesDisplay();
+            }
+        });
+
+        // Update selected currencies display
+        function updateSelectedCurrenciesDisplay() {
+            selectedCurrenciesDiv.innerHTML = '';
+            selectedCurrencies.forEach(currency => {
+                const span = document.createElement('span');
+                span.className = 'selected-currency';
+                span.innerHTML = `${currency} <span class="remove-currency" data-currency="${currency}">×</span>`;
+                selectedCurrenciesDiv.appendChild(span);
+            });
+
+            // Update currency select options
+            Array.from(currencySelect.options).forEach(option => {
+                if (option.value) {
+                    option.disabled = selectedCurrencies.has(option.value);
+                }
+            });
+        }
+
+        // Remove currency when clicked
+        selectedCurrenciesDiv.addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-currency')) {
+                const currency = e.target.dataset.currency;
+                selectedCurrencies.delete(currency);
+                updateSelectedCurrenciesDisplay();
+            }
+        });
+
+        function addEventAnnotations(events, dates) {
+            const annotations = {};
+            events.forEach((event, index) => {
+                const dateIndex = dates.indexOf(event.date);
+                if (dateIndex !== -1) {
+                    annotations[`event${index}`] = {
+                        type: 'line',
+                        borderColor: 'rgba(255, 99, 132, 0.3)',
+                        borderWidth: 1,
+                        borderDash: [5, 5],
+                        label: {
+                            display: true,
+                            content: event.event,
+                            position: 'end',
+                            backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                            color: 'white',
+                            font: {
+                                size: 10,
+                                weight: 'bold'
+                            },
+                            padding: 4,
+                            rotation: 0,
+                            yAdjust: 50
+                        },
+                        scaleID: 'x',
+                        value: new Date(event.date).getTime()
+                    };
+                }
+            });
+            return annotations;
+        }
+
+        // Update chart with selected currencies
+        updateChartBtn.addEventListener('click', function() {
+            if (selectedCurrencies.size === 0) return;
+
+            fetch('/api/historical-rates', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    currencies: Array.from(selectedCurrencies)
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Store economic events for tooltip access
+                chart.economicEvents = data.events;
+                
+                // Convert date strings to Date objects for proper time scale
+                const timeLabels = data.dates.map(date => new Date(date));
+                
+                // Update chart with new data
+                chart.data.labels = timeLabels;
+                chart.data.datasets = data.currencies.map(curr => ({
+                    label: curr.currency,
+                    data: curr.rates.map((rate, index) => ({
+                        x: timeLabels[index],
+                        y: rate
+                    })),
+                    borderColor: getRandomColor(),
+                    fill: false,
+                    tension: 0.1
+                }));
+
+                // Add event annotations
+                chart.options.plugins.annotation.annotations = addEventAnnotations(data.events, data.dates);
+                
+                chart.update();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert(error.message || 'An error occurred while fetching data');
+            });
+        });
+
+        // Generate random colors for chart lines
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+    });
+</script>
+{% endblock %} 

@@ -4,7 +4,7 @@ def convert_currency(amount, from_currency, to_currency):
     """
     Convert amount from one currency to another using latest rates.
     """
-    rates = get_latest_rates()
+    rates, _ = get_latest_rates()
     if not rates:
         return None
     

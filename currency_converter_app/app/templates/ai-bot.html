@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}Currency AI Assistant - Currency Converter{% endblock %}
+
+{% block styles %}
+<style>
+    .chat-container {
+        height: 400px;
+        overflow-y: auto;
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+        padding: 1rem;
+        background-color: #f8f9fa;
+    }
+
+    .message {
+        margin-bottom: 1rem;
+        padding: 0.75rem;
+        border-radius: 1rem;
+        max-width: 80%;
+    }
+
+    .user-message {
+        background-color: #007bff;
+        color: white;
+        margin-left: auto;
+        border-top-right-radius: 0.25rem;
+    }
+
+    .bot-message {
+        background-color: #e9ecef;
+        color: #212529;
+        margin-right: auto;
+        border-top-left-radius: 0.25rem;
+    }
+
+    .voice-button {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+
+    .voice-button:hover {
+        background-color: #0056b3;
+        transform: scale(1.1);
+    }
+
+    .voice-button.recording {
+        background-color: #dc3545;
+        animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+
+    .status-indicator {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-top: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h1 class="text-center mb-4">Currency AI Assistant</h1>
+            
+            <!-- Chat Container -->
+            <div class="chat-container mb-4" id="chatContainer">
+                <div class="message bot-message">
+                    Hi! I'm your currency assistant. I can help you with:
+                    <ul>
+                        <li>Exchange rate information</li>
+                        <li>Currency conversion</li>
+                        <li>Market trends</li>
+                        <li>Currency facts</li>
+                    </ul>
+                    Feel free to ask me anything about currencies!
+                </div>
+            </div>
+
+            <!-- Voice Interface -->
+            <div class="text-center mb-4">
+                <button class="voice-button" id="voiceButton">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <div class="status-indicator" id="statusIndicator">
+                    Click the microphone to start speaking
+                </div>
+            </div>
+
+            <!-- Text Input -->
+            <div class="input-group mb-3">
+                <input type="text" class="form-control" id="userInput" 
+                       placeholder="Type your message here...">
+                <button class="btn btn-primary" id="sendButton">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Font Awesome for icons -->
+<script src="https://kit.fontawesome.com/your-font-awesome-kit.js" crossorigin="anonymous"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const chatContainer = document.getElementById('chatContainer');
+        const userInput = document.getElementById('userInput');
+        const sendButton = document.getElementById('sendButton');
+        const voiceButton = document.getElementById('voiceButton');
+        const statusIndicator = document.getElementById('statusIndicator');
+        let isRecording = false;
+
+        // Initialize speech recognition
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        // Handle voice button click
+        voiceButton.addEventListener('click', function() {
+            if (!isRecording) {
+                startRecording();
+            } else {
+                stopRecording();
+            }
+        });
+
+        // Handle send button click
+        sendButton.addEventListener('click', sendMessage);
+
+        // Handle enter key press
+        userInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        function startRecording() {
+            isRecording = true;
+            voiceButton.classList.add('recording');
+            statusIndicator.textContent = 'Listening...';
+            recognition.start();
+        }
+
+        function stopRecording() {
+            isRecording = false;
+            voiceButton.classList.remove('recording');
+            statusIndicator.textContent = 'Click the microphone to start speaking';
+            recognition.stop();
+        }
+
+        recognition.onresult = function(event) {
+            const transcript = event.results[0][0].transcript;
+            userInput.value = transcript;
+            sendMessage();
+        };
+
+        recognition.onerror = function(event) {
+            console.error('Speech recognition error:', event.error);
+            stopRecording();
+            statusIndicator.textContent = 'Error: ' + event.error;
+        };
+
+        function sendMessage() {
+            const message = userInput.value.trim();
+            if (message) {
+                // Add user message to chat
+                addMessage(message, 'user');
+                
+                // Clear input
+                userInput.value = '';
+
+                // Send to backend and get response
+                fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    addMessage(data.response, 'bot');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    addMessage('Sorry, I encountered an error. Please try again.', 'bot');
+                });
+            }
+        }
+
+        function addMessage(text, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message');
+            messageDiv.classList.add(sender === 'user' ? 'user-message' : 'bot-message');
+            messageDiv.textContent = text;
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+    });
+</script>
+{% endblock %} 
